@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 import model as m
+import pickle
 
 def train(train_set : DataLoader,kernel_size = 5, 
           channel_list = [5, 10],pool = 'Avg', linear_list = [100],act = 'ReLU',
@@ -19,7 +20,7 @@ def train(train_set : DataLoader,kernel_size = 5,
 
     model = m.MyModel(kernel_size, channel_list, pool, linear_list, act)
     if optim == 'SGD':
-        optimizer = torch.optim.SGD(model.parameters(), lr = 0.06)
+        optimizer = torch.optim.SGD(model.parameters(), lr = 0.06, weight_decay=.001)
     elif optim == 'Adam':
         optimizer = torch.optim.Adam(model.parameters(), lr = 1e-4)
 
@@ -28,6 +29,7 @@ def train(train_set : DataLoader,kernel_size = 5,
 
     model = model.to(device)
     model.train()
+    loss_list = []
     for t in range(num_epochs):
         total_loss = 0
         for count, (input, label) in enumerate(train_set):
@@ -40,15 +42,23 @@ def train(train_set : DataLoader,kernel_size = 5,
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
+           
 
             if (count + 1) % 100 == 0:
                 print(f"Epoch [{t + 1}], iteration {count + 1}, loss = {loss.item()}")
 
         print(f"Epoch [{t + 1}], loss = {total_loss / len(train_set)}")
+        loss_list.append(total_loss / len(train_set))
 
-    return model
+    return model, loss_list
 
 if __name__ == '__main__':
     print("Loading dataset...")
-    train_set, test_set = m.get_train_test_set(batch_size=64)
-    model = train(train_set, optim='Adam',channel_list=[10, 30], linear_list=[1000])
+    train_set, test_set = m.get_train_test_set(batch_size=128)
+    #model, loss = train(train_set, optim='SGD',pool='Max',channel_list=[18, 48], linear_list=[800], num_epochs=20)
+    model, loss = train(train_set, optim='SGD',pool='Max',channel_list=[15, 30], linear_list=[800], num_epochs=10)
+    #save model if needed
+    with open('./models/model.pickle', 'wb') as fp:
+        pickle.dump(model, fp)
+    with open('./figures/loss.pickle', 'wb') as fp:
+        pickle.dump(loss, fp)
