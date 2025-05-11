@@ -15,8 +15,6 @@ def get_train_test_set(download = False, batch_size = 4):
 
     return trainloader, testloader
 
-trn, tes = get_train_test_set()
-
 class MyModel(nn.Module):
     """
     Class for CIFAR-10 Recongnition
@@ -40,10 +38,12 @@ class MyModel(nn.Module):
         for i in range(len(channel_list) - 1):
             #Pooling
             if pool == 'Avg':
-                pass#conv_list.append(nn.AvgPool2d(kernel_size=2))
+                conv_list.append(nn.AvgPool2d(kernel_size=2))
+                input_size //= 2
             elif pool == 'Max':
-                pass#conv_list.append(nn.MaxPool2d(kernel_size=2))
-            #input_size //= 2
+                conv_list.append(nn.MaxPool2d(kernel_size=2))
+                input_size //= 2
+            #conv_list.append(nn.Dropout(0.1))
             conv_list.append(nn.Conv2d(channel_list[i], channel_list[i + 1], kernel_size))
             input_size -= (kernel_size - 1)
         self.conv = nn.ModuleList(conv_list)
@@ -54,12 +54,14 @@ class MyModel(nn.Module):
         input_size *= channel_list[-1]
 
         #full connection layer
-        connect_list = [nn.ReLU(), nn.Linear(input_size, linear_list[0])]
+        #connect_list = [nn.ReLU(), nn.Linear(input_size, linear_list[0])]
+        connect_list = [ nn.Linear(input_size, linear_list[0])]
         linear_list = linear_list + [10] #10 as the numbers of output label
 
         for i in range(len(linear_list) - 1):
             if act == 'ReLU':
                 connect_list.append(nn.ReLU())
+                #connect_list.append(nn.Dropout(0.1))
             connect_list.append(nn.Linear(linear_list[i], linear_list[i + 1]))
             
         self.linear = nn.ModuleList(connect_list)
