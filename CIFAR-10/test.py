@@ -30,5 +30,5 @@ if __name__ == '__main__':
         model.cpu()
         train_set, test_set = m.get_train_test_set(batch_size=32)
         
-        accuracy = test_model(model, train_set)
+        accuracy = test_model(model, test_set)
         print(f"Accuracy on test set:{accuracy}")

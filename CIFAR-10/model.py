@@ -46,6 +46,9 @@ class MyModel(nn.Module):
             #conv_list.append(nn.Dropout(0.1))
             conv_list.append(nn.Conv2d(channel_list[i], channel_list[i + 1], kernel_size))
             input_size -= (kernel_size - 1)
+            #*******
+            conv_list.append(nn.AvgPool2d(kernel_size=2))
+            input_size //= 2
         self.conv = nn.ModuleList(conv_list)
 
         #Flatten layer
@@ -54,8 +57,8 @@ class MyModel(nn.Module):
         input_size *= channel_list[-1]
 
         #full connection layer
-        #connect_list = [nn.ReLU(), nn.Linear(input_size, linear_list[0])]
-        connect_list = [ nn.Linear(input_size, linear_list[0])]
+        connect_list = [nn.ReLU(), nn.Linear(input_size, linear_list[0])]
+        #connect_list = [ nn.Linear(input_size, linear_list[0])]
         linear_list = linear_list + [10] #10 as the numbers of output label
 
         for i in range(len(linear_list) - 1):
