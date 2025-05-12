@@ -7,7 +7,10 @@ def get_train_test_set(download = False, batch_size = 4):
     """
     :return: The train dataloader and test dataloader of CIFAR-10 recongnition issue
     """
-    transform = transforms.Compose( [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5,0.5))])
+    transform = transforms.Compose( [
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+        transforms.ToTensor(), 
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5,0.5))])
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=download, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
     testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=download, transform=transform)
@@ -36,6 +39,8 @@ class MyModel(nn.Module):
         input_size -= (kernel_size - 1)
         channel_list = channel_list
         for i in range(len(channel_list) - 1):
+            conv_list.append(nn.LayerNorm([channel_list[i], input_size, input_size]))
+            conv_list.append(nn.ReLU())
             #Pooling
             if pool == 'Avg':
                 conv_list.append(nn.AvgPool2d(kernel_size=2))
@@ -43,11 +48,14 @@ class MyModel(nn.Module):
             elif pool == 'Max':
                 conv_list.append(nn.MaxPool2d(kernel_size=2))
                 input_size //= 2
-            #conv_list.append(nn.Dropout(0.1))
+            conv_list.append(nn.Dropout(0.1))
             conv_list.append(nn.Conv2d(channel_list[i], channel_list[i + 1], kernel_size))
             input_size -= (kernel_size - 1)
             #*******
-            conv_list.append(nn.AvgPool2d(kernel_size=2))
+            conv_list.append(nn.LayerNorm([channel_list[i + 1], input_size, input_size]))
+            conv_list.append(nn.ReLU())
+            conv_list.append(nn.MaxPool2d(kernel_size=2))
+            conv_list.append(nn.Dropout(0.1))
             input_size //= 2
         self.conv = nn.ModuleList(conv_list)
 
@@ -64,7 +72,7 @@ class MyModel(nn.Module):
         for i in range(len(linear_list) - 1):
             if act == 'ReLU':
                 connect_list.append(nn.ReLU())
-                #connect_list.append(nn.Dropout(0.1))
+                connect_list.append(nn.Dropout(0.1))
             connect_list.append(nn.Linear(linear_list[i], linear_list[i + 1]))
             
         self.linear = nn.ModuleList(connect_list)
