@@ -7,13 +7,20 @@ def get_train_test_set(download = False, batch_size = 4):
     """
     :return: The train dataloader and test dataloader of CIFAR-10 recongnition issue
     """
-    transform = transforms.Compose( [
+    transform_train = transforms.Compose( [
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        #*******
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+        transforms.ToTensor(), 
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5,0.5))])
+    transform_test = transforms.Compose( [
         #transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
         transforms.ToTensor(), 
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5,0.5))])
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=download, transform=transform)
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=download, transform=transform_train)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=download, transform=transform)
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=download, transform=transform_test)
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
 
     return trainloader, testloader
@@ -46,7 +53,7 @@ class MyModel(nn.Module):
                 self.layers.append(nn.MaxPool2d(kernel_size=2))
                 input_size //= 2
             #Dropout
-            self.layers.append(nn.Dropout(0.3))
+            self.layers.append(nn.Dropout(0.1))
         #Flatten
         self.layers.append(nn.Flatten())
         input_size = input_size**2
@@ -57,7 +64,7 @@ class MyModel(nn.Module):
         for i in range(len(linear_list) - 1):
             if act == 'ReLU':
                 self.layers.append(nn.ReLU())
-            self.layers.append(nn.Dropout(0.3))
+            #self.layers.append(nn.Dropout(0.2))
             self.layers.append(nn.Linear(linear_list[i], linear_list[i + 1]))
 
         self.layers = nn.ModuleList(self.layers)
