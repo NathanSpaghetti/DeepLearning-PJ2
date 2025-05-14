@@ -29,7 +29,90 @@ class MyModel(nn.Module):
     """
     Class for CIFAR-10 Recongnition
     """
-    def __init__(self, kernel_size = 5, channel_list = [5, 10],pool = 'Avg', linear_list = [100],act = 'ReLU'):
+
+    def __init__(self, kernel_size = 5,layer_list = [], channel_list = [5, 10], linear_list = [100]):
+        super(MyModel, self).__init__()
+        self.layers = []
+        count_conv = 0 #count of convolution layer
+        count_linear = 0 #count of full connection layer
+        input_size = 32
+
+        channel_list = [3] + channel_list
+        for layer in layer_list:
+            if layer == 'ReLU':
+                self.layers.append(nn.ReLU())
+            elif layer == 'MaxPool':
+                self.layers.append(nn.MaxPool2d(kernel_size=2))
+                input_size //= 2
+            elif layer == 'AvgPool':
+                self.layers.append(nn.AvgPool2d(kernel_size=2))
+                input_size //= 2
+            elif layer == 'Norm':
+                self.layers.append(nn.LayerNorm([channel_list[count_conv], input_size, input_size]))
+            elif layer == 'Drop':
+                self.layers.append(nn.Dropout(0.1))
+            elif layer == 'Conv':
+                self.layers.append(nn.Conv2d(channel_list[count_conv], channel_list[count_conv + 1], kernel_size=kernel_size))
+                input_size -= (kernel_size - 1)
+                count_conv += 1
+            elif layer == 'Flatten':
+                self.layers.append(nn.Flatten())
+                input_size = input_size**2
+                input_size *= channel_list[-1]
+                linear_list = [input_size] + linear_list
+            elif layer == 'Linear':
+                self.layers.append(nn.Linear(linear_list[count_linear], linear_list[count_linear + 1]))
+                count_linear += 1
+            else:
+                raise "No such layer!"
+
+
+        input_size = 32 #input size of linear layer, begin as height and width of CIFAR-10 image
+        #Convolution layers
+        channel_list = [3] + channel_list
+        self.layers = nn.ModuleList(self.layers)
+
+    def b__init__(self, kernel_size = 5, channel_list = [5, 10],pool = 'Avg', linear_list = [100],act = 'ReLU'):
+        super(MyModel, self).__init__()
+        self.layers = []
+
+        input_size = 32 #input size of linear layer, begin as height and width of CIFAR-10 image
+        #Convolution layers
+        channel_list = [3] + channel_list
+        for i in range(len(channel_list) - 1):
+            #Convolution
+            self.layers.append(nn.Conv2d(channel_list[i], channel_list[i + 1], kernel_size))
+            input_size -= (kernel_size - 1)
+            #Activation function
+            if act == 'ReLU':
+                self.layers.append(nn.ReLU())
+            #Pooling
+            if pool == 'Avg':
+                self.layers.append(nn.AvgPool2d(kernel_size=2))
+                input_size //= 2
+            elif pool == 'Max':
+                self.layers.append(nn.MaxPool2d(kernel_size=2))
+                input_size //= 2
+            #Batch Norm
+            self.layers.append(nn.LayerNorm([channel_list[i + 1], input_size, input_size]))
+            #Dropout
+            #self.layers.append(nn.Dropout(0.1))
+        #Flatten
+        self.layers.append(nn.Flatten())
+        #self.layers.append(nn.ReLU())
+        input_size = input_size**2
+        input_size *= channel_list[-1]
+
+        #Full connection
+        linear_list = [input_size] + linear_list + [10]
+        for i in range(len(linear_list) - 1):
+            if act == 'ReLU':
+                self.layers.append(nn.ReLU())
+            self.layers.append(nn.Dropout(0.1))
+            self.layers.append(nn.Linear(linear_list[i], linear_list[i + 1]))
+
+        self.layers = nn.ModuleList(self.layers)
+    def a__init__(self, kernel_size = 5, channel_list = [5, 10],pool = 'Avg', linear_list = [100],act = 'ReLU'):
         super(MyModel, self).__init__()
         self.layers = []
 
@@ -43,8 +126,8 @@ class MyModel(nn.Module):
             #Batch Norm
             self.layers.append(nn.LayerNorm([channel_list[i + 1], input_size, input_size]))
             #Activation function
-            if act == 'ReLU':
-                self.layers.append(nn.ReLU())
+            #if act == 'ReLU':
+            #    self.layers.append(nn.ReLU())
             #Pooling
             if pool == 'Avg':
                 self.layers.append(nn.AvgPool2d(kernel_size=2))
@@ -53,9 +136,10 @@ class MyModel(nn.Module):
                 self.layers.append(nn.MaxPool2d(kernel_size=2))
                 input_size //= 2
             #Dropout
-            self.layers.append(nn.Dropout(0.1))
+            #self.layers.append(nn.Dropout(0.1))
         #Flatten
         self.layers.append(nn.Flatten())
+        #self.layers.append(nn.ReLU())
         input_size = input_size**2
         input_size *= channel_list[-1]
 
@@ -66,62 +150,9 @@ class MyModel(nn.Module):
                 self.layers.append(nn.ReLU())
             #self.layers.append(nn.Dropout(0.2))
             self.layers.append(nn.Linear(linear_list[i], linear_list[i + 1]))
+        self.layers.append(nn.Dropout(0.3))
 
         self.layers = nn.ModuleList(self.layers)
-
-    def a__init__(self, kernel_size = 5, channel_list = [5, 10],pool = 'Avg', linear_list = [100],act = 'ReLU'):
-        """
-        :param channel_list: a list of the channel count in each convolution layer, there will be len(channel_list) convolution layer(s)
-        :param pool: Pool function
-        :param linear_lisr: a list of the size in each full connection layer.
-        :param act: Activation function
-        """
-        super(MyModel, self).__init__()
-        self.kernel_size = kernel_size
-        input_size = 32 #input size of linear layer, begin as height and width of CIFAR-10 image
-
-        #Convolution layers
-        conv_list = [nn.Conv2d(3, channel_list[0], kernel_size)]
-        input_size -= (kernel_size - 1)
-        channel_list = channel_list
-        for i in range(len(channel_list) - 1):
-            conv_list.append(nn.LayerNorm([channel_list[i], input_size, input_size]))
-            conv_list.append(nn.ReLU())
-            #Pooling
-            if pool == 'Avg':
-                conv_list.append(nn.AvgPool2d(kernel_size=2))
-                input_size //= 2
-            elif pool == 'Max':
-                conv_list.append(nn.MaxPool2d(kernel_size=2))
-                input_size //= 2
-            conv_list.append(nn.Dropout(0.1))
-            conv_list.append(nn.Conv2d(channel_list[i], channel_list[i + 1], kernel_size))
-            input_size -= (kernel_size - 1)
-            #*******
-            conv_list.append(nn.LayerNorm([channel_list[i + 1], input_size, input_size]))
-            conv_list.append(nn.ReLU())
-            conv_list.append(nn.MaxPool2d(kernel_size=2))
-            conv_list.append(nn.Dropout(0.1))
-            input_size //= 2
-        self.conv = nn.ModuleList(conv_list)
-
-        #Flatten layer
-        self.flatten = nn.Flatten()
-        input_size = input_size**2
-        input_size *= channel_list[-1]
-
-        #full connection layer
-        connect_list = [nn.ReLU(), nn.Linear(input_size, linear_list[0])]
-        #connect_list = [ nn.Linear(input_size, linear_list[0])]
-        linear_list = linear_list + [10] #10 as the numbers of output label
-
-        for i in range(len(linear_list) - 1):
-            if act == 'ReLU':
-                connect_list.append(nn.ReLU())
-                connect_list.append(nn.Dropout(0.1))
-            connect_list.append(nn.Linear(linear_list[i], linear_list[i + 1]))
-            
-        self.linear = nn.ModuleList(connect_list)
 
     def forward(self, input):
 

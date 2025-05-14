@@ -7,10 +7,20 @@ from torch.utils.data import DataLoader
 import model as m
 import pickle
 
-def train(train_set : DataLoader, valid_set,kernel_size = 3, 
-          channel_list = [5, 10],pool = 'Avg', linear_list = [100],act = 'ReLU',
-          optim = 'SGD', loss_func = 'CrossEntropy', num_epochs = 10)-> nn.Module:
+def train(train_set : DataLoader,
+          valid_set,
+          model = None,
+          kernel_size = 3, 
+          channel_list = [5, 10],
+          layers = None,
+          #pool = 'Avg',
+          linear_list = [100],
+          #act = 'ReLU',
+          optim = 'SGD',
+          loss_func = 'CrossEntropy',
+          num_epochs = 10)-> nn.Module:
     """
+    :param mode: a pre trained model, set to None for training from the begining
     :param valid_set: a tuple (tensor, tensor) of data and label for valid set
     :return loss_list: a list of loss at each iteration
     :return loss_list_epoch: a list of loss at each epoch
@@ -23,7 +33,9 @@ def train(train_set : DataLoader, valid_set,kernel_size = 3,
         print("using cpu as device.")
         device = torch.device('cpu')
 
-    model = m.MyModel(kernel_size, channel_list, pool, linear_list, act)
+    if model is None:
+        #model = m.MyModel(kernel_size, channel_list, pool, linear_list, act)
+        model = m.MyModel(kernel_size, layers, channel_list, linear_list)
     if optim == 'SGD':
         #optimizer = torch.optim.SGD(model.parameters(), lr = 0.06, weight_decay=.001)
         optimizer = torch.optim.SGD(model.parameters(), lr = 0.06)
@@ -76,7 +88,30 @@ if __name__ == '__main__':
     train_set, test_set = m.get_train_test_set(batch_size=32)
     _, valid_set = enumerate(test_set).__next__()
     #model, loss, loss_epoch, loss_valid = train(train_set,valid_set, optim='SGD',pool='Max',channel_list=[18, 48], linear_list=[800], num_epochs=10)
-    model, loss, loss_epoch, loss_valid = train(train_set,valid_set, optim='SGD',pool='Max',channel_list=[16, 64, 128], linear_list=[1000, 512], num_epochs=20)
+    #with open('./models/model.pickle','rb') as fp:
+    #    model = pickle.load(fp)
+    """model, loss, loss_epoch, loss_valid = train(train_set,
+                                                valid_set,
+                                                optim='SGD',
+                                                pool='Max',
+                                                channel_list=[16, 64, 128],
+                                                linear_list=[1000, 512],
+                                                num_epochs=10,
+                                                model=model)"""
+    model, loss, loss_epoch, loss_valid = train(train_set,
+                                                valid_set,
+                                                optim='SGD',
+                                                #pool='Max',
+                                                layers=["Conv","ReLU", "MaxPool", "Norm",
+                                                        "Conv","ReLU", "MaxPool", "Norm", 
+                                                        "Conv","ReLU", "MaxPool",
+                                                        "Flatten",
+                                                        "Linear", "ReLU", "Drop",
+                                                        "Linear"],
+                                                channel_list=[16, 64, 128],
+                                                linear_list=[1000, 800],
+                                                num_epochs=10,
+                                                model=None)
     #model, loss, loss_epoch, loss_valid = train(train_set,valid_set, optim='SGD',pool='Max',channel_list=[16, 64], linear_list=[1000], num_epochs=30)
     #save model if needed
     with open('./models/model.pickle', 'wb') as fp:

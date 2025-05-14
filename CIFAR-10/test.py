@@ -39,5 +39,5 @@ if __name__ == '__main__':
         model = pickle.load(fp)
         train_set, test_set = m.get_train_test_set(batch_size=32)
         
-        accuracy = test_model(model, test_set)
+        accuracy = test_model(model, train_set)
         print(f"Accuracy on test set:{accuracy}")
