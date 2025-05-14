@@ -35,7 +35,7 @@ class MyModel(nn.Module):
         self.layers = []
         count_conv = 0 #count of convolution layer
         count_linear = 0 #count of full connection layer
-        input_size = 32
+        input_size = 32 #input size of linear layer, begin as height and width of CIFAR-10 image
 
         channel_list = [3] + channel_list
         for layer in layer_list:
@@ -53,6 +53,8 @@ class MyModel(nn.Module):
                 self.layers.append(nn.Dropout(0.1))
             elif layer == 'Conv':
                 self.layers.append(nn.Conv2d(channel_list[count_conv], channel_list[count_conv + 1], kernel_size=kernel_size))
+                #input_size -= (kernel_size - 1)
+                #input_size += 2
                 input_size -= (kernel_size - 1)
                 count_conv += 1
             elif layer == 'Flatten':
@@ -65,20 +67,13 @@ class MyModel(nn.Module):
                 count_linear += 1
             else:
                 raise "No such layer!"
-
-
-        input_size = 32 #input size of linear layer, begin as height and width of CIFAR-10 image
-        #Convolution layers
-        channel_list = [3] + channel_list
         self.layers = nn.ModuleList(self.layers)
 
     def b__init__(self, kernel_size = 5, channel_list = [5, 10],pool = 'Avg', linear_list = [100],act = 'ReLU'):
         super(MyModel, self).__init__()
         self.layers = []
 
-        input_size = 32 #input size of linear layer, begin as height and width of CIFAR-10 image
-        #Convolution layers
-        channel_list = [3] + channel_list
+        
         for i in range(len(channel_list) - 1):
             #Convolution
             self.layers.append(nn.Conv2d(channel_list[i], channel_list[i + 1], kernel_size))

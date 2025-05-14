@@ -37,7 +37,7 @@ def test_model(model : nn.Module, test_set : DataLoader):
 if __name__ == '__main__':
     with open('./models/model.pickle', 'rb') as fp:
         model = pickle.load(fp)
-        train_set, test_set = m.get_train_test_set(batch_size=32)
+        train_set, test_set = m.get_train_test_set(batch_size=64)
         
-        accuracy = test_model(model, train_set)
+        accuracy = test_model(model, test_set)
         print(f"Accuracy on test set:{accuracy}")
