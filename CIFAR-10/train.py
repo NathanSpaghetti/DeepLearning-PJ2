@@ -10,6 +10,8 @@ import pickle
 def train(train_set : DataLoader,
           valid_set,
           model = None,
+          all_loss = None,
+          lr = None,
           kernel_size = 3, 
           channel_list = [5, 10],
           layers = None,
@@ -18,6 +20,8 @@ def train(train_set : DataLoader,
           #act = 'ReLU',
           optim = 'SGD',
           loss_func = 'CrossEntropy',
+          weight_decay = 0,
+          dropout = 0.1,
           num_epochs = 10)-> nn.Module:
     """
     :param mode: a pre trained model, set to None for training from the begining
@@ -34,22 +38,40 @@ def train(train_set : DataLoader,
         device = torch.device('cpu')
 
     if model is None:
-        #model = m.MyModel(kernel_size, channel_list, pool, linear_list, act)
-        model = m.MyModel(kernel_size, layers, channel_list, linear_list)
+        model = m.MyModel(kernel_size, layers, channel_list, linear_list, dropout=dropout)
+
     if optim == 'SGD':
-        #optimizer = torch.optim.SGD(model.parameters(), lr = 0.06, weight_decay=.001)
-        optimizer = torch.optim.SGD(model.parameters(), lr = 0.06)
+        print(f"Use SGD with lr = {0.06}")
+        if lr is None:
+            lr = 0.06
+        optimizer = torch.optim.SGD(model.parameters(), lr = lr, weight_decay=weight_decay)
     elif optim == 'Adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr = 1e-4)
+        if lr is None:
+            lr = 1e-3
+        optimizer = torch.optim.Adam(model.parameters(), lr = lr, weight_decay=weight_decay)
+    elif optim == 'Adadelta':
+        if lr is None:
+            lr = 1
+        optimizer = torch.optim.Adadelta(model.parameters(), lr = lr, weight_decay=weight_decay)
+    elif optim == 'Momentum':
+        if lr is None:
+            lr = 0.01
+        optimizer = torch.optim.SGD(model.parameters(), lr = lr, weight_decay=weight_decay, momentum=0.9)
 
     if loss_func == 'CrossEntropy':
         criterion = nn.CrossEntropyLoss()
 
     model = model.to(device)
     model.train()
-    loss_list = []
-    loss_list_epoch = []
-    loss_list_valid = []
+    if all_loss is None:
+        loss_list = []
+        loss_list_epoch = []
+        loss_list_valid = []
+    else:
+        loss_list = all_loss[0]
+        loss_list_epoch = all_loss[1]
+        loss_list_valid = all_loss[2]
+
     for t in range(num_epochs):
         total_loss = 0
         total_loss_valid = 0
@@ -66,8 +88,7 @@ def train(train_set : DataLoader,
            
 
             if (count + 1) % 100 == 0:
-                #print(f"output is:{pred}")
-                #valid
+                model.eval()
                 valid = valid_set[0].to(device)
                 label = valid_set[1].to(device)
                 pred = model(valid)
@@ -75,9 +96,9 @@ def train(train_set : DataLoader,
                 total_loss_valid += loss_valid.item()
                 print(f"Epoch [{t + 1}], iteration {count + 1}, loss = {loss.item()}, valid loss = {loss_valid.item()}")
                 loss_list.append(loss.item())
+                model.train()
 
         print(f"Epoch [{t + 1}], loss = {total_loss / len(train_set)}, valid loss = {total_loss_valid / 15}")
-        #print(f"output is:{pred}")
         loss_list_epoch.append(total_loss / len(train_set))
         loss_list_valid.append(total_loss_valid / 15)
 
@@ -87,32 +108,30 @@ if __name__ == '__main__':
     print("Loading dataset...")
     train_set, test_set = m.get_train_test_set(batch_size=32)
     _, valid_set = enumerate(test_set).__next__()
-    #model, loss, loss_epoch, loss_valid = train(train_set,valid_set, optim='SGD',pool='Max',channel_list=[18, 48], linear_list=[800], num_epochs=10)
-    #with open('./models/model.pickle','rb') as fp:
-    #    model = pickle.load(fp)
-    """model, loss, loss_epoch, loss_valid = train(train_set,
-                                                valid_set,
-                                                optim='SGD',
-                                                pool='Max',
-                                                channel_list=[16, 64, 128],
-                                                linear_list=[1000, 512],
-                                                num_epochs=10,
-                                                model=model)"""
     model, loss, loss_epoch, loss_valid = train(train_set,
                                                 valid_set,
                                                 optim='SGD',
-                                                #pool='Max',
-                                                layers=["Conv","ReLU", "MaxPool", "Norm",
-                                                        "Conv","ReLU", "MaxPool", "Norm", 
-                                                        "Conv","ReLU", "MaxPool",
+                                                layers=["Conv", "ReLU","MaxPool", "Norm",
+                                                        #"Conv", "ReLU","MaxPool", "Norm",
+                                                        "Conv", "ReLU","Drop","Norm",
+                                                        "Conv", "ReLU","Drop","Norm",
+                                                        "Conv", "ReLU","MaxPool","Norm",
                                                         "Flatten",
-                                                        "Linear", "ReLU", "Drop",
-                                                        "Linear"],
-                                                channel_list=[16, 64, 128],
-                                                linear_list=[1000, 800],
-                                                num_epochs=10,
-                                                model=None)
-    #model, loss, loss_epoch, loss_valid = train(train_set,valid_set, optim='SGD',pool='Max',channel_list=[16, 64], linear_list=[1000], num_epochs=30)
+                                                        "Linear","Norm", "ReLU","Drop",
+                                                        "Linear","Norm", "ReLU","Drop",
+                                                        "Linear","Norm", "ReLU","Drop",
+                                                        "Linear"
+                                                        ],
+                                                #channel_list=[64, 64, 128, 256],#[16, 64, 128],
+                                                channel_list=[64, 256,256, 512],
+                                               
+                                                linear_list=[4096, 2048, 1024],
+                                                
+                                                num_epochs=30,
+                                                dropout=0.3,
+                                                lr = 0.06,
+                                                model=None,
+                                                all_loss=None)
     #save model if needed
     with open('./models/model.pickle', 'wb') as fp:
         pickle.dump(model, fp)
