@@ -2,12 +2,13 @@
 Data loaders
 """
 import matplotlib as mpl
-mpl.use('Agg')
+#mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 import torchvision.datasets as datasets
+import torch
 
 
 
@@ -31,7 +32,7 @@ def get_cifar_loader(root='../data/', batch_size=128, train=True, shuffle=True, 
         [transforms.ToTensor(),
         normalize])
 
-    dataset = datasets.CIFAR10(root=root, train=train, download=True, transform=data_transforms)
+    dataset = datasets.CIFAR10(root=root, train=train, download=False, transform=data_transforms)
     if n_items > 0:
         dataset = PartialDataset(dataset, n_items)
 
@@ -40,14 +41,15 @@ def get_cifar_loader(root='../data/', batch_size=128, train=True, shuffle=True, 
     return loader
 
 if __name__ == '__main__':
-    train_loader = get_cifar_loader()
+    train_loader = get_cifar_loader(root='../data/')
     for X, y in train_loader:
         print(X[0])
         print(y[0])
         print(X[0].shape)
         img = np.transpose(X[0], [1,2,0])
         plt.imshow(img*0.5 + 0.5)
-        plt.savefig('sample.png')
+        plt.show()
+        #plt.savefig('sample.png')
         print(X[0].max())
         print(X[0].min())
         break
